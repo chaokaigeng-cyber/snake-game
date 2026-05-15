@@ -1,6 +1,10 @@
 name: SUDA Notice Check
 
 on:
+  push:
+    paths:
+      - '.github/workflows/suda-notice-check.yml'
+      - 'scripts/suda_notice_check.py'
   schedule:
     - cron: '0 1 * * *'
   workflow_dispatch:
@@ -21,5 +25,5 @@ jobs:
         env:
           GMAIL_USERNAME: ${{ secrets.GMAIL_USERNAME }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-          RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
+          RECIPIENT_EMAIL: 2418656381@qq.com
         run: python scripts/suda_notice_check.py
