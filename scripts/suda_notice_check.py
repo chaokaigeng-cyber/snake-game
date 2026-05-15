@@ -19,7 +19,7 @@ NEWS_RSS_URL = "https://news.google.com/rss/search?q={query}&hl=en-US&gl=US&ceid
 TRANSLATE_URL = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=zh-CN&dt=t&q={query}"
 DEFAULT_RECIPIENT = "2418656381@qq.com"
 WINDOW_HOURS = 12
-START_AT = datetime(2026, 5, 17, 12, 0, tzinfo=timezone(timedelta(hours=8)))
+START_AT = datetime(2026, 5, 16, 12, 0, tzinfo=timezone(timedelta(hours=8)))
 TZ = timezone(timedelta(hours=8))
 
 
@@ -58,7 +58,7 @@ def translate_to_zh(text: str) -> str:
 
 def parse_list(html: str) -> List[Notice]:
     pattern = re.compile(
-        r'<li class="news-list-item">\s*<a href="(?P<href>[^"]+)" title="(?P<title>[^"]+)">.*?'
+        r'<li class="news-list-item">\s*<a href="(?P<href>[^"]+)" title="(?P<title>[^"]+)\">.*?'
         r'<div class="date">\s*<span>(?P<day>\d{1,2})</span>\s*<b>(?P<year_month>\d{4}\.\d{2})</b>',
         re.S,
     )
@@ -81,8 +81,6 @@ def filter_recent_notices(notices: List[Notice], now: datetime) -> List[Notice]:
     recent: List[Notice] = []
     for notice in notices:
         notice_dt = datetime.strptime(notice.date, "%Y.%m.%d").replace(tzinfo=TZ)
-        # The SUDA source page exposes only date precision, so this is the
-        # narrowest reliable approximation available for a 12-hour window.
         if notice_dt >= cutoff.replace(hour=0, minute=0, second=0, microsecond=0):
             recent.append(notice)
     return recent
