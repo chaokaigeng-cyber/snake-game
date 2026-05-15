@@ -3,15 +3,18 @@ from __future__ import annotations
 import os
 import re
 import smtplib
+import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
+from email.utils import parsedate_to_datetime
 from html import unescape
-from typing import List
-from urllib.parse import urljoin
+from typing import Iterable, List
+from urllib.parse import quote, urljoin
 from urllib.request import urlopen
 
 LIST_URL = "https://yjs.suda.edu.cn/8386/list.htm"
+NEWS_RSS_URL = "https://news.google.com/rss/search?q={query}&hl=en-US&gl=US&ceid=US:en"
 DEFAULT_RECIPIENT = "2418656381@qq.com"
 TZ = timezone(timedelta(hours=8))
 
@@ -21,6 +24,15 @@ class Notice:
     title: str
     url: str
     date: str
+
+
+@dataclass
+class NewsItem:
+    title: str
+    source: str
+    source_url: str
+    link: str
+    published_at: str
 
 
 def fetch_html(url: str) -> str:
@@ -60,16 +72,84 @@ def filter_recent(notices: List[Notice], now: datetime) -> List[Notice]:
     return recent
 
 
-def build_body(now: datetime, recent: List[Notice]) -> str:
-    if not recent:
-        return "无"
+def parse_google_news_feed(query: str, limit: int) -> List[NewsItem]:
+    url = NEWS_RSS_URL.format(query=quote(query))
+    xml_text = fetch_html(url)
+    root = ET.fromstring(xml_text)
+    items: List[NewsItem] = []
+    seen_titles: set[str] = set()
+    for node in root.findall("./channel/item"):
+        title_text = node.findtext("title", default="").strip()
+        if not title_text:
+            continue
+        source_node = node.find("source")
+        source = (source_node.text or "").strip() if source_node is not None else ""
+        source_url = source_node.attrib.get("url", "") if source_node is not None else ""
+        clean_title = re.sub(r"\s*-\s*[^-]+$", "", title_text).strip()
+        if clean_title in seen_titles:
+            continue
+        seen_titles.add(clean_title)
+        published_raw = node.findtext("pubDate", default="")
+        published_dt = parsedate_to_datetime(published_raw).astimezone(TZ)
+        items.append(
+            NewsItem(
+                title=clean_title,
+                source=source,
+                source_url=source_url,
+                link=node.findtext("link", default="").strip(),
+                published_at=published_dt.strftime("%Y-%m-%d %H:%M:%S %z"),
+            )
+        )
+        if len(items) >= limit:
+            break
+    return items
 
-    lines = [f"检查时间：{now.strftime('%Y-%m-%d %H:%M:%S %z')}", "", "24小时内新通知：", ""]
-    for index, notice in enumerate(recent, start=1):
-        lines.append(f"{index}. {notice.title}")
-        lines.append(f"日期：{notice.date}")
-        lines.append(f"链接：{notice.url}")
+
+def build_section(title: str, items: Iterable[NewsItem]) -> list[str]:
+    lines = [title]
+    for index, item in enumerate(items, start=1):
+        lines.append(f"{index}. {item.title}")
+        lines.append(f"来源：{item.source}")
+        lines.append(f"时间：{item.published_at}")
+        lines.append(f"链接：{item.link}")
+        if item.source_url:
+            lines.append(f"来源站点：{item.source_url}")
         lines.append("")
+    return lines
+
+
+def build_body(now: datetime) -> str:
+    html = fetch_html(LIST_URL)
+    notices = parse_list(html)
+    recent = filter_recent(notices, now)
+    ai_items = parse_google_news_feed(
+        '"artificial intelligence" OR "generative AI" OR OpenAI OR Anthropic OR Nvidia when:1d (site:reuters.com OR site:apnews.com OR site:techcrunch.com)',
+        3,
+    )
+    politics_items = parse_google_news_feed(
+        'election OR president OR prime minister OR parliament OR sanctions OR summit when:1d (site:reuters.com OR site:apnews.com OR site:bbc.com)',
+        5,
+    )
+    finance_items = parse_google_news_feed(
+        'stocks OR inflation OR central bank OR earnings OR tariffs when:1d (site:reuters.com OR site:cnbc.com OR site:bloomberg.com)',
+        2,
+    )
+
+    lines = [f"检查时间：{now.strftime('%Y-%m-%d %H:%M:%S %z')}", ""]
+    lines.append("一、苏大消息")
+    if recent:
+        for index, notice in enumerate(recent, start=1):
+            lines.append(f"{index}. {notice.title}")
+            lines.append(f"日期：{notice.date}")
+            lines.append(f"链接：{notice.url}")
+            lines.append("")
+    else:
+        lines.append("无")
+        lines.append("")
+
+    lines.extend(build_section("二、AI热点（3条）", ai_items))
+    lines.extend(build_section("三、世界政治热点（5条）", politics_items))
+    lines.extend(build_section("四、财经热点（2条）", finance_items))
     return "\n".join(lines).strip()
 
 
@@ -91,10 +171,7 @@ def send_email(subject: str, body: str) -> None:
 
 def main() -> None:
     now = datetime.now(TZ)
-    html = fetch_html(LIST_URL)
-    notices = parse_list(html)
-    recent = filter_recent(notices, now)
-    body = build_body(now, recent)
+    body = build_body(now)
     send_email("苏大消息检查", body)
     print(body)
 
