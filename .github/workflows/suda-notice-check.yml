@@ -6,7 +6,7 @@ on:
       - '.github/workflows/suda-notice-check.yml'
       - 'scripts/suda_notice_check.py'
   schedule:
-    - cron: '0 1 * * *'
+    - cron: '0 4,16 * * *'
   workflow_dispatch:
 
 jobs:
