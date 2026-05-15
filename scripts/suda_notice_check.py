@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import json
 import os
 import re
 import smtplib
 import xml.etree.ElementTree as ET
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 from email.utils import parsedate_to_datetime
@@ -15,7 +16,10 @@ from urllib.request import urlopen
 
 LIST_URL = "https://yjs.suda.edu.cn/8386/list.htm"
 NEWS_RSS_URL = "https://news.google.com/rss/search?q={query}&hl=en-US&gl=US&ceid=US:en"
+TRANSLATE_URL = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=zh-CN&dt=t&q={query}"
 DEFAULT_RECIPIENT = "2418656381@qq.com"
+WINDOW_HOURS = 12
+START_AT = datetime(2026, 5, 17, 12, 0, tzinfo=timezone(timedelta(hours=8)))
 TZ = timezone(timedelta(hours=8))
 
 
@@ -29,6 +33,7 @@ class Notice:
 @dataclass
 class NewsItem:
     title: str
+    title_zh: str
     source: str
     source_url: str
     link: str
@@ -38,6 +43,17 @@ class NewsItem:
 def fetch_html(url: str) -> str:
     with urlopen(url, timeout=20) as response:
         return response.read().decode("utf-8", "replace")
+
+
+def translate_to_zh(text: str) -> str:
+    if not text:
+        return text
+    try:
+        url = TRANSLATE_URL.format(query=quote(text))
+        payload = json.loads(fetch_html(url))
+        return "".join(part[0] for part in payload[0] if part and part[0]).strip() or text
+    except Exception:
+        return text
 
 
 def parse_list(html: str) -> List[Notice]:
@@ -60,13 +76,13 @@ def parse_list(html: str) -> List[Notice]:
     return notices
 
 
-def filter_recent(notices: List[Notice], now: datetime) -> List[Notice]:
-    cutoff = now - timedelta(hours=24)
+def filter_recent_notices(notices: List[Notice], now: datetime) -> List[Notice]:
+    cutoff = now - timedelta(hours=WINDOW_HOURS)
     recent: List[Notice] = []
     for notice in notices:
         notice_dt = datetime.strptime(notice.date, "%Y.%m.%d").replace(tzinfo=TZ)
-        # The source page exposes only date precision. Use local midnight for a
-        # deterministic approximation of the user's 24-hour rule.
+        # The SUDA source page exposes only date precision, so this is the
+        # narrowest reliable approximation available for a 12-hour window.
         if notice_dt >= cutoff.replace(hour=0, minute=0, second=0, microsecond=0):
             recent.append(notice)
     return recent
@@ -94,6 +110,7 @@ def parse_google_news_feed(query: str, limit: int) -> List[NewsItem]:
         items.append(
             NewsItem(
                 title=clean_title,
+                title_zh=translate_to_zh(clean_title),
                 source=source,
                 source_url=source_url,
                 link=node.findtext("link", default="").strip(),
@@ -108,7 +125,8 @@ def parse_google_news_feed(query: str, limit: int) -> List[NewsItem]:
 def build_section(title: str, items: Iterable[NewsItem]) -> list[str]:
     lines = [title]
     for index, item in enumerate(items, start=1):
-        lines.append(f"{index}. {item.title}")
+        lines.append(f"{index}. {item.title_zh}")
+        lines.append(f"原题：{item.title}")
         lines.append(f"来源：{item.source}")
         lines.append(f"时间：{item.published_at}")
         lines.append(f"链接：{item.link}")
@@ -118,24 +136,24 @@ def build_section(title: str, items: Iterable[NewsItem]) -> list[str]:
     return lines
 
 
-def build_body(now: datetime) -> str:
+def build_output(now: datetime) -> dict:
     html = fetch_html(LIST_URL)
     notices = parse_list(html)
-    recent = filter_recent(notices, now)
+    recent = filter_recent_notices(notices, now)
     ai_items = parse_google_news_feed(
-        '"artificial intelligence" OR "generative AI" OR OpenAI OR Anthropic OR Nvidia when:1d (site:reuters.com OR site:apnews.com OR site:techcrunch.com)',
+        '"artificial intelligence" OR "generative AI" OR OpenAI OR Anthropic OR Nvidia when:12h (site:reuters.com OR site:apnews.com OR site:techcrunch.com)',
         3,
     )
     politics_items = parse_google_news_feed(
-        'election OR president OR prime minister OR parliament OR sanctions OR summit when:1d (site:reuters.com OR site:apnews.com OR site:bbc.com)',
+        'election OR president OR prime minister OR parliament OR sanctions OR summit when:12h (site:reuters.com OR site:apnews.com OR site:bbc.com)',
         5,
     )
     finance_items = parse_google_news_feed(
-        'stocks OR inflation OR central bank OR earnings OR tariffs when:1d (site:reuters.com OR site:cnbc.com OR site:bloomberg.com)',
+        'stocks OR inflation OR central bank OR earnings OR tariffs when:12h (site:reuters.com OR site:cnbc.com OR site:bloomberg.com)',
         2,
     )
 
-    lines = [f"检查时间：{now.strftime('%Y-%m-%d %H:%M:%S %z')}", ""]
+    lines = [f"检查时间：{now.strftime('%Y-%m-%d %H:%M:%S %z')}", f"统计窗口：近 {WINDOW_HOURS} 小时", ""]
     lines.append("一、苏大消息")
     if recent:
         for index, notice in enumerate(recent, start=1):
@@ -147,10 +165,24 @@ def build_body(now: datetime) -> str:
         lines.append("无")
         lines.append("")
 
-    lines.extend(build_section("二、AI热点（3条）", ai_items))
+    lines.extend(build_section("二、AI 热点（3条）", ai_items))
     lines.extend(build_section("三、世界政治热点（5条）", politics_items))
     lines.extend(build_section("四、财经热点（2条）", finance_items))
-    return "\n".join(lines).strip()
+    body = "\n".join(lines).strip()
+    return {
+        "checked_at": now.isoformat(timespec="seconds"),
+        "recent_notices": [asdict(n) for n in recent],
+        "ai_items": [asdict(n) for n in ai_items],
+        "politics_items": [asdict(n) for n in politics_items],
+        "finance_items": [asdict(n) for n in finance_items],
+        "body": body,
+    }
+
+
+def should_send(now: datetime) -> bool:
+    if os.environ.get("FORCE_SEND") == "1":
+        return True
+    return now >= START_AT
 
 
 def send_email(subject: str, body: str) -> None:
@@ -171,9 +203,15 @@ def send_email(subject: str, body: str) -> None:
 
 def main() -> None:
     now = datetime.now(TZ)
-    body = build_body(now)
-    send_email("苏大消息检查", body)
-    print(body)
+    output = build_output(now)
+    if os.environ.get("OUTPUT_MODE") == "body":
+        print(output["body"])
+        return
+    if not should_send(now):
+        print(f"Skipped until {START_AT.isoformat()}")
+        return
+    send_email("苏大消息检查", output["body"])
+    print(output["body"])
 
 
 if __name__ == "__main__":
