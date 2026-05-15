@@ -12,6 +12,7 @@ from urllib.parse import urljoin
 from urllib.request import urlopen
 
 LIST_URL = "https://yjs.suda.edu.cn/8386/list.htm"
+DEFAULT_RECIPIENT = "2418656381@qq.com"
 TZ = timezone(timedelta(hours=8))
 
 
@@ -75,7 +76,7 @@ def build_body(now: datetime, recent: List[Notice]) -> str:
 def send_email(subject: str, body: str) -> None:
     sender = os.environ["GMAIL_USERNAME"]
     password = os.environ["GMAIL_APP_PASSWORD"]
-    recipient = os.environ.get("RECIPIENT_EMAIL", sender)
+    recipient = os.environ.get("RECIPIENT_EMAIL", DEFAULT_RECIPIENT)
 
     msg = EmailMessage()
     msg["From"] = sender
