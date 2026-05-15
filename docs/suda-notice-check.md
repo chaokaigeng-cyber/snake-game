@@ -12,17 +12,15 @@ Schedule:
 
 Behavior:
 
-- Check the SUDA page for items within the last 12 hours. If there are none, send `无` for the SUDA section.
+- The SUDA section uses a date-based fallback rule because the source page exposes dates but not precise publish times.
+- Notices dated today or yesterday are included, so a newly posted SUDA notice will appear in both the `12:00` and `00:00` mailings.
+- If there are no such SUDA notices, send `无` for the SUDA section.
 - Also include a 12-hour hot-topic digest from authoritative sites:
 - 3 AI hot topics
 - 5 world politics hot topics
 - 2 finance hot topics
 - Headlines are translated to Chinese, with original titles retained below each item.
 - Current destination mailbox: `2418656381@qq.com`
-
-Known source limitation:
-
-- The SUDA site list and article page expose date but not precise publish time, so the 12-hour judgment for SUDA notices is the narrowest reliable approximation available from the source itself.
 
 Required GitHub repository secrets:
 
