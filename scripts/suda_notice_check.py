@@ -19,6 +19,7 @@ NEWS_RSS_URL = "https://news.google.com/rss/search?q={query}&hl=en-US&gl=US&ceid
 TRANSLATE_URL = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=zh-CN&dt=t&q={query}"
 DEFAULT_RECIPIENT = "2418656381@qq.com"
 WINDOW_HOURS = 12
+# Cloud schedule starts from 2026-05-16 12:00 in Asia/Shanghai.
 START_AT = datetime(2026, 5, 16, 12, 0, tzinfo=timezone(timedelta(hours=8)))
 TZ = timezone(timedelta(hours=8))
 
@@ -58,7 +59,7 @@ def translate_to_zh(text: str) -> str:
 
 def parse_list(html: str) -> List[Notice]:
     pattern = re.compile(
-        r'<li class="news-list-item">\s*<a href="(?P<href>[^"]+)" title="(?P<title>[^"]+)\">.*?'
+        r'<li class="news-list-item">\s*<a href="(?P<href>[^"]+)" title="(?P<title>[^"]+)">.*?'
         r'<div class="date">\s*<span>(?P<day>\d{1,2})</span>\s*<b>(?P<year_month>\d{4}\.\d{2})</b>',
         re.S,
     )
