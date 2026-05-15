@@ -78,11 +78,12 @@ def parse_list(html: str) -> List[Notice]:
 
 
 def filter_recent_notices(notices: List[Notice], now: datetime) -> List[Notice]:
-    cutoff = now - timedelta(hours=WINDOW_HOURS)
+    today = now.date()
+    yesterday = today - timedelta(days=1)
     recent: List[Notice] = []
     for notice in notices:
-        notice_dt = datetime.strptime(notice.date, "%Y.%m.%d").replace(tzinfo=TZ)
-        if notice_dt >= cutoff.replace(hour=0, minute=0, second=0, microsecond=0):
+        notice_day = datetime.strptime(notice.date, "%Y.%m.%d").date()
+        if notice_day in {today, yesterday}:
             recent.append(notice)
     return recent
 
@@ -152,7 +153,12 @@ def build_output(now: datetime) -> dict:
         2,
     )
 
-    lines = [f"检查时间：{now.strftime('%Y-%m-%d %H:%M:%S %z')}", f"统计窗口：近 {WINDOW_HOURS} 小时", ""]
+    lines = [
+        f"检查时间：{now.strftime('%Y-%m-%d %H:%M:%S %z')}",
+        f"热点统计窗口：近 {WINDOW_HOURS} 小时",
+        "苏大消息规则：网站仅提供日期，因此当天和前一天的通知会在 12:00 和 00:00 两次邮件中重复带出",
+        "",
+    ]
     lines.append("一、苏大消息")
     if recent:
         for index, notice in enumerate(recent, start=1):
