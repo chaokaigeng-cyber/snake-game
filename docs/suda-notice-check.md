@@ -11,8 +11,12 @@ Schedule:
 
 Behavior:
 
-- If there are notices judged to be within the last 24 hours, send them by email.
-- If there are none, send `无`.
+- If there are SUDA notices judged to be within the last 24 hours, send them by email.
+- If there are none, send `无` for the SUDA section.
+- Also include a daily 24-hour hot-topic digest from authoritative sites:
+- 3 AI hot topics
+- 5 world politics hot topics
+- 2 finance hot topics
 - Current destination mailbox: `2418656381@qq.com`
 
 Required GitHub repository secrets:
