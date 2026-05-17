@@ -6,14 +6,14 @@ This repository hosts a cloud-based daily check for:
 
 Schedule:
 
-- GitHub Actions cron `0 4,16 * * *`
-- Equivalent to `00:00` and `12:00` in `Asia/Shanghai`
-- Start time: `2026-05-16 12:00 +08:00`
+- GitHub Actions cron `0 2,14 * * *`
+- Equivalent to `10:00` and `22:00` in `Asia/Shanghai`
+- Current effective schedule: twice daily at 10:00 and 22:00 China time
 
 Behavior:
 
 - The SUDA section uses a date-based fallback rule because the source page exposes dates but not precise publish times.
-- Notices dated today or yesterday are included, so a newly posted SUDA notice will appear in both the `12:00` and `00:00` mailings.
+- Notices dated today or yesterday are included, so a newly posted SUDA notice will appear in both daily mailings.
 - If there are no such SUDA notices, send `无` for the SUDA section.
 - Also include a 12-hour hot-topic digest from authoritative sites:
 - 3 AI hot topics
@@ -21,6 +21,11 @@ Behavior:
 - 2 finance hot topics
 - Headlines are translated to Chinese, with original titles retained below each item.
 - Current destination mailbox: `2418656381@qq.com`
+
+Operational note:
+
+- GitHub Actions scheduled workflows are cloud-based and do not depend on the local computer being powered on.
+- GitHub scheduled workflow start times are not guaranteed to be exact; jobs can be delayed by GitHub queueing after the cron time.
 
 Required GitHub repository secrets:
 
