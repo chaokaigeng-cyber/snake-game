@@ -6,7 +6,8 @@ on:
       - '.github/workflows/suda-notice-check.yml'
       - 'scripts/suda_notice_check.py'
   schedule:
-    - cron: '0 4,16 * * *'
+    # 02:00 and 14:00 UTC equal 10:00 and 22:00 in Asia/Shanghai.
+    - cron: '0 2,14 * * *'
   workflow_dispatch:
 
 jobs:
