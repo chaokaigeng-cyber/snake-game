@@ -1,0 +1,26 @@
+name: SUDA Notice Check Beijing Time
+
+on:
+  schedule:
+    # 02:00 and 14:00 UTC equal 10:00 and 22:00 in Asia/Shanghai.
+    - cron: '0 2,14 * * *'
+  workflow_dispatch:
+
+jobs:
+  check-and-send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Check notices and send email
+        env:
+          GMAIL_USERNAME: ${{ secrets.GMAIL_USERNAME }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          RECIPIENT_EMAIL: 2418656381@qq.com
+        run: python scripts/suda_notice_check.py
