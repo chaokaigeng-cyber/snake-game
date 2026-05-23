@@ -19,7 +19,7 @@ NEWS_RSS_URL = "https://news.google.com/rss/search?q={query}&hl=en-US&gl=US&ceid
 TRANSLATE_URL = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=zh-CN&dt=t&q={query}"
 DEFAULT_RECIPIENT = "2418656381@qq.com"
 WINDOW_HOURS = 12
-# Cloud schedule starts from 2026-05-16 12:00 in Asia/Shanghai.
+# Cloud schedule is 10:00 and 22:00 in Asia/Shanghai.
 START_AT = datetime(2026, 5, 16, 12, 0, tzinfo=timezone(timedelta(hours=8)))
 TZ = timezone(timedelta(hours=8))
 
@@ -156,7 +156,7 @@ def build_output(now: datetime) -> dict:
     lines = [
         f"检查时间：{now.strftime('%Y-%m-%d %H:%M:%S %z')}",
         f"热点统计窗口：近 {WINDOW_HOURS} 小时",
-        "苏大消息规则：网站仅提供日期，因此当天和前一天的通知会在 12:00 和 00:00 两次邮件中重复带出",
+        "苏大消息规则：网站仅提供日期，因此当天和前一天的通知会在北京时间 10:00 和 22:00 两次邮件中重复带出",
         "",
     ]
     lines.append("一、苏大消息")
