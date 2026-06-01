@@ -177,6 +177,7 @@ def build_output(now: datetime) -> dict:
     return {
         "checked_at": now.isoformat(timespec="seconds"),
         "recent_notices": [asdict(n) for n in recent],
+        "subject": f"苏大消息：有消息（{len(recent)}条）" if recent else "苏大消息：无消息",
         "ai_items": [asdict(n) for n in ai_items],
         "politics_items": [asdict(n) for n in politics_items],
         "finance_items": [asdict(n) for n in finance_items],
@@ -215,7 +216,7 @@ def main() -> None:
     if not should_send(now):
         print(f"Skipped until {START_AT.isoformat()}")
         return
-    send_email("苏大消息检查", output["body"])
+    send_email(output["subject"], output["body"])
     print(output["body"])
 
 
