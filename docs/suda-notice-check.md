@@ -13,6 +13,9 @@ Schedule:
 
 Behavior:
 
+- The email subject shows the SUDA status directly:
+- `苏大消息：有消息（N条）` when SUDA notices are present
+- `苏大消息：无消息` when no SUDA notice is present
 - The SUDA section uses a date-based fallback rule because the source page exposes dates but not precise publish times.
 - Notices dated today or yesterday are included, so a newly posted SUDA notice will appear in both daily mailings.
 - If there are no such SUDA notices, send `无` for the SUDA section.
@@ -27,7 +30,7 @@ Operational note:
 
 - GitHub Actions scheduled workflows are cloud-based and do not depend on the local computer being powered on.
 - GitHub scheduled workflow start times are not guaranteed to be exact; jobs can be delayed by GitHub queueing after the cron time.
-- The previous workflow file `.github/workflows/suda-notice-check.yml` was removed after schedule runs continued near the old 12:00/00:00 times, forcing GitHub to register the refreshed Beijing-time workflow from a new file.
+- The previous workflow file `.github/workflows/suda-notice-check.yml` is kept as a no-op guard for stale old schedule registrations and intentionally sends no email.
 
 Required GitHub repository secrets:
 
@@ -37,4 +40,5 @@ Required GitHub repository secrets:
 Files:
 
 - `.github/workflows/suda-notice-check-beijing.yml`
+- `.github/workflows/suda-notice-check.yml` no-op guard
 - `scripts/suda_notice_check.py`
