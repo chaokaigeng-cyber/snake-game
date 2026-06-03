@@ -12,4 +12,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Deprecated workflow guard
-        run: echo "Deprecated SUDA workflow guard: no email is sent from this workflow."
+        run: |
+          echo "Deprecated SUDA workflow guard: no email is sent from this workflow."
