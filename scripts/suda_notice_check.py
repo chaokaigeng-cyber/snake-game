@@ -208,6 +208,10 @@ def send_email(subject: str, body: str) -> None:
 
 
 def main() -> None:
+    if os.environ.get("ENABLE_EMAIL") != "1":
+        print("SUDA email sending is disabled.")
+        return
+
     now = datetime.now(TZ)
     output = build_output(now)
     if os.environ.get("OUTPUT_MODE") == "body":
