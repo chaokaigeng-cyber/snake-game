@@ -1,16 +1,12 @@
-name: SUDA Notice Check
+name: SUDA Notice Check (Disabled)
 
 on:
-  schedule:
-    # Deprecated guard for the previous schedule registration.
-    # This workflow intentionally does not send email.
-    - cron: '0 4,16 * * *'
   workflow_dispatch:
 
 jobs:
-  deprecated-noop:
+  disabled-noop:
     runs-on: ubuntu-latest
     steps:
-      - name: Deprecated workflow guard
+      - name: Legacy scheduled email disabled
         run: |
-          echo "Deprecated SUDA workflow guard: no email is sent from this workflow."
+          echo "Legacy SUDA scheduled email sending is disabled."
